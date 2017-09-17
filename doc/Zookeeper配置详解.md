@@ -33,12 +33,20 @@ zookeeper启动的时候需要等待的时间，初始化连接时, follower和l
 
 ### 启动服务器
 
-    bin/zkServer.sh start
+> bin/zkServer.sh start
+
 默认读取conf/zoo.cfg 配置文件，也可以指定配置文件
     
-    bin/zkServer.sh start conf/zoo1.cfg
+> bin/zkServer.sh start conf/zoo1.cfg
 
 
+### 连接到ZooKeeper服务器
+
+> bin/zkCli.sh -server 127.0.0.1:2181
+
+第一个端口是Leader和Follower通信的端口
+第二个端口是Leader选举的端口
+clientPort 是客户端连接到ZooKeeper集群的端口
 
 
 
