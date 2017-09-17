@@ -1,5 +1,6 @@
-### ZooKeeper学习笔记
-#### 作者
-* 吴晋清
+## ZooKeeper学习笔记
 
-[连接测试](./doc/Zookeeper配置详解.md)
+
+##### [Zookeeper配置详解](doc/Zookeeper配置详解.md)
+
+##### [ZooKeeper单机版集群配置](doc/ZooKeeper单机版集群配置.md)
