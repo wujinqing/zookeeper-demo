@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+        Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，你会看到log4j2内部各种详细输出。
+    -->
+<!--
+    monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数。
+-->
+<Configuration status="error" monitorInterval="30" >
+    <!--先定义所有的appender-->
+    <Appenders>
+        <!--这个输出控制台的配置-->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--
+            下面是Appender配置，Appender可以理解为日志的输出目的地，这里配置了一个类型为Console的Appender，也就是输出到控制台。Console节点中的PatternLayout定义了输出日志时的格式：
+            %d{yyyy-MM-dd HH:mm:ss.SSS} 表示输出到毫秒的时间
+            %t 输出当前线程名称
+            %-5level 输出日志级别，-5表示左对齐并且固定输出5个字符，如果不足在右边补0
+            %logger 输出logger名称，因为Root Logger没有名称，所以没有输出
+            %msg 日志文本
+            %n 换行
+            其他常用的占位符有：
+            %F 输出所在的类文件名，如Client.java【LogTest.java】
+            %L 输出行号【15】
+            %M 输出所在方法名【main】
+            %l  输出语句所在的行数, 包括类名、方法名、文件名、行数 【com.jin.log4j2.demo.LogTest.main(LogTest.java:15)】
+            -->
+            <!--
+            <PatternLayout pattern="时间：【%d{yyyy-MM-dd HH:mm:ss.SSS}】 【[%t]】 日志级别：【%-5level】 %logger{36} -类名： 【%F】，%l方法名：【%M】，行号： 【%L】 - %msg%n "></PatternLayout>
+            -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] %l - %msg%n "></PatternLayout>
+        </Console>
+
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console" />
+        </Root>
+    </Loggers>
+</Configuration>

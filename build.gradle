@@ -14,5 +14,11 @@ dependencies {
 
     compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.10'
 
+    compile (
+            'org.apache.logging.log4j:log4j-api:2.8',
+            'org.apache.logging.log4j:log4j-core:2.8',
+            'org.apache.logging.log4j:log4j-slf4j-impl:2.8',
+            'org.slf4j:slf4j-api:1.7.21'
+    )
 
 }
