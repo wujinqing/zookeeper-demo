@@ -5,6 +5,9 @@
 
 ##### [ZooKeeper单机版集群配置](doc/ZooKeeper单机版集群配置.md)
 
+### 监听器(Watcher)的生命周期
+一旦客户端被关闭，session将会失效，此客户端所创建的所有临时节点
+(ephemeral nodes)将会被删除，关联在这些节点及父节点上的所有监听器将会被触发。
 
 原文：
 >

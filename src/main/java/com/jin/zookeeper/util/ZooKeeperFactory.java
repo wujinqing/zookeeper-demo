@@ -19,7 +19,8 @@ public class ZooKeeperFactory {
      *
      */
     public static final String CONNECT_STRING = "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183";
-    public static final int SESSION_TIMEOUT = 100 * 1000;// 会话超时时间, 单位毫秒
+//    public static final int SESSION_TIMEOUT = 100 * 1000;// 会话超时时间, 单位毫秒
+    public static final int SESSION_TIMEOUT = Integer.MAX_VALUE;// 会话超时时间, 单位毫秒
 
     public static ZooKeeper newZooKeeper() throws IOException {
         ZooKeeper zooKeeper = new ZooKeeper(CONNECT_STRING, SESSION_TIMEOUT, new DefaultWatcher());

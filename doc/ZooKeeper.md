@@ -71,6 +71,7 @@ session ID失效之前)，如果连接成功应用就可以继续使用。
 
 ### public ZooKeeper(String connectString, int sessionTimeout, Watcher watcher, long sessionId, byte[] sessionPasswd) throws IOException
 > **同上**
+
 > 参数：**sessionId**
 > 指定session id用于重新连接(reconnecting)
 
@@ -136,338 +137,85 @@ path，而是(新path = path+由十位数字组成的后缀, 如: my_path0000000
 
 > 临时节点不能有子节点，如果给一个临时节点创建子节点将抛出KeeperException.NoChildrenForEphemerals异常。
 
->
-     * If the parent node does not exist in the ZooKeeper, a KeeperException
-     * with error code KeeperException.NoNode will be thrown.
-     * <p>
-     * An ephemeral node cannot have children. If the parent node of the given
-     * path is ephemeral, a KeeperException with error code
-     * KeeperException.NoChildrenForEphemerals will be thrown.
-     * <p>
-     * This operation, if successful, will trigger all the watches left on the
-     * node of the given path by exists and getData API calls, and the watches
-     * left on the parent node by getChildren API calls.
-     * <p>
-     * If a node is created successfully, the ZooKeeper server will trigger the
-     * watches on the path left by exists calls, and the watches on the parent
-     * of the node by getChildren calls.
-     * <p>
-     * The maximum allowable size of the data array is 1 MB (1,048,576 bytes).
-     * Arrays larger than this will cause a KeeperExecption to be thrown.
-     *
-     * @param path
-     *                the path for the node
-     * @param data
-     *                the initial data for the node
-     * @param acl
-     *                the acl for the node
-     * @param createMode
-     *                specifying whether the node to be created is ephemeral
-     *                and/or sequential
-     * @return the actual path of the created node
-     * @throws KeeperException if the server returns a non-zero error code
-     * @throws KeeperException.InvalidACLException if the ACL is invalid, null, or empty
-     * @throws InterruptedException if the transaction is interrupted
-     * @throws IllegalArgumentException if an invalid path is specified
-     */
-    public String create(final String path, byte data[], List<ACL> acl,
-            CreateMode createMode)
-        throws KeeperException, InterruptedException
-    {
-        final String clientPath = path;
-        PathUtils.validatePath(clientPath, createMode.isSequential());
+> 如果节点创建成功，将会触发与之关联的所有触发器(由调用exists、getData这些方法添加
+的监听器，或者父节点调用getChildren添加的监听器)。
 
-        final String serverPath = prependChroot(clientPath);
+> 如果一个节点创建成功，这些监听器会被触发(对当前节点调用exists，父节点调用
+getChildren方法)。
 
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.create);
-        CreateRequest request = new CreateRequest();
-        CreateResponse response = new CreateResponse();
-        request.setData(data);
-        request.setFlags(createMode.toFlag());
-        request.setPath(serverPath);
-        if (acl != null && acl.size() == 0) {
-            throw new KeeperException.InvalidACLException();
-        }
-        request.setAcl(acl);
-        ReplyHeader r = cnxn.submitRequest(h, request, response, null);
-        if (r.getErr() != 0) {
-            throw KeeperException.create(KeeperException.Code.get(r.getErr()),
-                    clientPath);
-        }
-        if (cnxn.chrootPath == null) {
-            return response.getPath();
-        } else {
-            return response.getPath().substring(cnxn.chrootPath.length());
-        }
-    }
+> 每个节点的数据容量最大是1MB, 如果超过了这个大小将会抛出KeeperExecption异常
 
-    /**
-     * The asynchronous version of create.
-     *
-     * @see #create(String, byte[], List, CreateMode)
-     */
+> 参数：**path**
+> 节点路径
 
-    public void create(final String path, byte data[], List<ACL> acl,
-            CreateMode createMode,  StringCallback cb, Object ctx)
-    {
-        final String clientPath = path;
-        PathUtils.validatePath(clientPath, createMode.isSequential());
+> 参数：**data**
+> 节点的初始数据
 
-        final String serverPath = prependChroot(clientPath);
+> 参数：**acl**
+> 访问控制列表 Access Control List (ACL)
 
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.create);
-        CreateRequest request = new CreateRequest();
-        CreateResponse response = new CreateResponse();
-        ReplyHeader r = new ReplyHeader();
-        request.setData(data);
-        request.setFlags(createMode.toFlag());
-        request.setPath(serverPath);
-        request.setAcl(acl);
-        cnxn.queuePacket(h, r, request, response, cb, clientPath,
-                serverPath, ctx, null);
-    }
+> 参数：**createMode**
+> 指定节点的创建模式，详情参考:[CreateMode](CreateMode.md)
 
-    /**
-     * Delete the node with the given path. The call will succeed if such a node
-     * exists, and the given version matches the node's version (if the given
-     * version is -1, it matches any node's versions).
-     * <p>
-     * A KeeperException with error code KeeperException.NoNode will be thrown
-     * if the nodes does not exist.
-     * <p>
-     * A KeeperException with error code KeeperException.BadVersion will be
-     * thrown if the given version does not match the node's version.
-     * <p>
-     * A KeeperException with error code KeeperException.NotEmpty will be thrown
-     * if the node has children.
-     * <p>
-     * This operation, if successful, will trigger all the watches on the node
-     * of the given path left by exists API calls, and the watches on the parent
-     * node left by getChildren API calls.
-     *
-     * @param path
-     *                the path of the node to be deleted.
-     * @param version
-     *                the expected node version.
-     * @throws InterruptedException IF the server transaction is interrupted
-     * @throws KeeperException If the server signals an error with a non-zero
-     *   return code.
-     * @throws IllegalArgumentException if an invalid path is specified
-     */
-    public void delete(final String path, int version)
-        throws InterruptedException, KeeperException
-    {
-        final String clientPath = path;
-        PathUtils.validatePath(clientPath);
+> 返回值:返回该节点对应的真实路径。
 
-        final String serverPath;
+### public void create(final String path, byte data[], List<ACL> acl, CreateMode createMode,  StringCallback cb, Object ctx)
 
-        // maintain semantics even in chroot case
-        // specifically - root cannot be deleted
-        // I think this makes sense even in chroot case.
-        if (clientPath.equals("/")) {
-            // a bit of a hack, but delete(/) will never succeed and ensures
-            // that the same semantics are maintained
-            serverPath = clientPath;
-        } else {
-            serverPath = prependChroot(clientPath);
-        }
+> 创建节点的异步版本
 
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.delete);
-        DeleteRequest request = new DeleteRequest();
-        request.setPath(serverPath);
-        request.setVersion(version);
-        ReplyHeader r = cnxn.submitRequest(h, request, null, null);
-        if (r.getErr() != 0) {
-            throw KeeperException.create(KeeperException.Code.get(r.getErr()),
-                    clientPath);
-        }
-    }
+> 文档同上
 
-    /**
-     * Executes multiple ZooKeeper operations or none of them.
-     * <p>
-     * On success, a list of results is returned.
-     * On failure, an exception is raised which contains partial results and
-     * error details, see {@link KeeperException#getResults}
-     * <p>
-     * Note: The maximum allowable size of all of the data arrays in all of
-     * the setData operations in this single request is typically 1 MB
-     * (1,048,576 bytes). This limit is specified on the server via
-     * <a href="http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#Unsafe+Options">jute.maxbuffer</a>.
-     * Requests larger than this will cause a KeeperException to be
-     * thrown.
-     *
-     * @param ops An iterable that contains the operations to be done.
-     * These should be created using the factory methods on {@link Op}.
-     * @return A list of results, one for each input Op, the order of
-     * which exactly matches the order of the <code>ops</code> input
-     * operations.
-     * @throws InterruptedException If the operation was interrupted.
-     * The operation may or may not have succeeded, but will not have
-     * partially succeeded if this exception is thrown.
-     * @throws KeeperException If the operation could not be completed
-     * due to some error in doing one of the specified ops.
-     * @throws IllegalArgumentException if an invalid path is specified
-     *
-     * @since 3.4.0
-     */
-    public List<OpResult> multi(Iterable<Op> ops) throws InterruptedException, KeeperException {
-        for (Op op : ops) {
-            op.validate();
-        }
-        return multiInternal(generateMultiTransaction(ops));
-    }
+### public void delete(final String path, int version) throws InterruptedException, KeeperException
 
-    /**
-     * The asynchronous version of multi.
-     *
-     * @see #multi(Iterable)
-     * @since 3.4.7
-     */
-    public void multi(Iterable<Op> ops, MultiCallback cb, Object ctx) {
-        List<OpResult> results = validatePath(ops);
-        if (results.size() > 0) {
-            cb.processResult(KeeperException.Code.BADARGUMENTS.intValue(),
-                             null, ctx, results);
-            return;
-        }
-        multiInternal(generateMultiTransaction(ops), cb, ctx);
-    }
+> 删除指定路径的节点。当节点存在且给定的版本与服务器上该节点的版本相同(如果给定的版本
+是-1将无条件删除即不比较版本)。
 
-    private List<OpResult> validatePath(Iterable<Op> ops) {
-        List<OpResult> results = new ArrayList<OpResult>();
-        boolean error = false;
-        for (Op op : ops) {
-            try {
-                op.validate();
-            } catch (IllegalArgumentException iae) {
-                LOG.error("IllegalArgumentException: " + iae.getMessage());
-                ErrorResult err = new ErrorResult(
-                        KeeperException.Code.BADARGUMENTS.intValue());
-                results.add(err);
-                error = true;
-                continue;
-            } catch (KeeperException ke) {
-                LOG.error("KeeperException: " + ke.getMessage());
-                ErrorResult err = new ErrorResult(ke.code().intValue());
-                results.add(err);
-                error = true;
-                continue;
-            }
-            ErrorResult err = new ErrorResult(
-                    KeeperException.Code.RUNTIMEINCONSISTENCY.intValue());
-            results.add(err);
-        }
-        if (false == error) {
-            results.clear();
-        }
-        return results;
-    }
+> 如果节点不存在将抛出KeeperException.NoNode异常。
 
-    private MultiTransactionRecord generateMultiTransaction(Iterable<Op> ops) {
-        List<Op> transaction = new ArrayList<Op>();
+> 如果版本不匹配将抛出KeeperException.BadVersion异常。
 
-        for (Op op : ops) {
-            transaction.add(withRootPrefix(op));
-        }
-        return new MultiTransactionRecord(transaction);
-    }
+> 如果节点含有子节点将抛出KeeperException.NotEmpty异常。
 
-    private Op withRootPrefix(Op op) {
-        if (null != op.getPath()) {
-            final String serverPath = prependChroot(op.getPath());
-            if (!op.getPath().equals(serverPath)) {
-                return op.withChroot(serverPath);
-            }
-        }
-        return op;
-    }
+> 如果删除操作成功将触发由调用exists方法及父类调用getChildren方法所添加的触发器。
 
-    protected void multiInternal(MultiTransactionRecord request, MultiCallback cb, Object ctx) {
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.multi);
-        MultiResponse response = new MultiResponse();
-        cnxn.queuePacket(h, new ReplyHeader(), request, response, cb, null, null, ctx, null);
-    }
+> 参数：**path**
+> 将被删除的节点的路径
 
-    protected List<OpResult> multiInternal(MultiTransactionRecord request)
-        throws InterruptedException, KeeperException {
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.multi);
-        MultiResponse response = new MultiResponse();
-        ReplyHeader r = cnxn.submitRequest(h, request, response, null);
-        if (r.getErr() != 0) {
-            throw KeeperException.create(KeeperException.Code.get(r.getErr()));
-        }
+> 参数：**version**
+> 期望的节点版本
 
-        List<OpResult> results = response.getResultList();
+### public void delete(final String path, int version, VoidCallback cb, Object ctx)
 
-        ErrorResult fatalError = null;
-        for (OpResult result : results) {
-            if (result instanceof ErrorResult && ((ErrorResult)result).getErr() != KeeperException.Code.OK.intValue()) {
-                fatalError = (ErrorResult) result;
-                break;
-            }
-        }
+> 创建节点的异步版本
 
-        if (fatalError != null) {
-            KeeperException ex = KeeperException.create(KeeperException.Code.get(fatalError.getErr()));
-            ex.setMultiResults(results);
-            throw ex;
-        }
+> 文档同上
 
-        return results;
-    }
+### public List<OpResult> multi(Iterable<Op> ops) throws InterruptedException, KeeperException
 
-    /**
-     * A Transaction is a thin wrapper on the {@link #multi} method
-     * which provides a builder object that can be used to construct
-     * and commit an atomic set of operations.
-     *
-     * @since 3.4.0
-     *
-     * @return a Transaction builder object
-     */
-    public Transaction transaction() {
-        return new Transaction(this);
-    }
+> 同时执行多个操作或者一个都不执行(多个操作当作一个事务来执行，要么全部执行，要么全部不执行)。
 
-    /**
-     * The asynchronous version of delete.
-     *
-     * @see #delete(String, int)
-     */
-    public void delete(final String path, int version, VoidCallback cb,
-            Object ctx)
-    {
-        final String clientPath = path;
-        PathUtils.validatePath(clientPath);
+> 如果执行成功将返回一个结果列表，如果失败将返回一个异常。
 
-        final String serverPath;
+> 在同一个请求中(可能包含多个操作)，所有的setData操作的数据总和不能超过1MB。这个限制
+由服务器的jute.maxbuffer设置。如果超过了大小限制将抛出异常。
 
-        // maintain semantics even in chroot case
-        // specifically - root cannot be deleted
-        // I think this makes sense even in chroot case.
-        if (clientPath.equals("/")) {
-            // a bit of a hack, but delete(/) will never succeed and ensures
-            // that the same semantics are maintained
-            serverPath = clientPath;
-        } else {
-            serverPath = prependChroot(clientPath);
-        }
 
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.delete);
-        DeleteRequest request = new DeleteRequest();
-        request.setPath(serverPath);
-        request.setVersion(version);
-        cnxn.queuePacket(h, new ReplyHeader(), request, null, cb, clientPath,
-                serverPath, ctx, null);
-    }
+> 参数：**ops**
+> 由这个类**org.apache.zookeeper.Op**组成的操作列表
+
+
+### public void multi(Iterable<Op> ops, MultiCallback cb, Object ctx)
+
+> 创建节点的异步版本
+
+> 文档同上
+
+### public Stat exists(final String path, Watcher watcher) throws KeeperException, InterruptedException
+
+> 返回给定路径所对应的节点的状态，如果节点不存在将返回null。
+
+> 当监听器不为null时，如果方法返回成功(未抛异常)，该监听器将会注册到这个节点上，当
+creates/delete操作成功时将会被触发。
 
     /**
      * Return the stat of the node of the given path. Return null if no such a
@@ -1168,93 +916,4 @@ path，而是(新path = path+由十位数字组成的后缀, 如: my_path0000000
         return cnxn.getState();
     }
 
-    /**
-     * String representation of this ZooKeeper client. Suitable for things
-     * like logging.
-     *
-     * Do NOT count on the format of this string, it may change without
-     * warning.
-     *
-     * @since 3.3.0
-     */
-    @Override
-    public String toString() {
-        States state = getState();
-        return ("State:" + state.toString()
-                + (state.isConnected() ?
-                        " Timeout:" + getSessionTimeout() + " " :
-                        " ")
-                + cnxn);
-    }
-
-    /*
-     * Methods to aid in testing follow.
-     *
-     * THESE METHODS ARE EXPECTED TO BE USED FOR TESTING ONLY!!!
-     */
-
-    /**
-     * Wait up to wait milliseconds for the underlying threads to shutdown.
-     * THIS METHOD IS EXPECTED TO BE USED FOR TESTING ONLY!!!
-     *
-     * @since 3.3.0
-     *
-     * @param wait max wait in milliseconds
-     * @return true iff all threads are shutdown, otw false
-     */
-    protected boolean testableWaitForShutdown(int wait)
-        throws InterruptedException
-    {
-        cnxn.sendThread.join(wait);
-        if (cnxn.sendThread.isAlive()) return false;
-        cnxn.eventThread.join(wait);
-        if (cnxn.eventThread.isAlive()) return false;
-        return true;
-    }
-
-    /**
-     * Returns the address to which the socket is connected. Useful for testing
-     * against an ensemble - test client may need to know which server
-     * to shutdown if interested in verifying that the code handles
-     * disconnection/reconnection correctly.
-     * THIS METHOD IS EXPECTED TO BE USED FOR TESTING ONLY!!!
-     *
-     * @since 3.3.0
-     *
-     * @return ip address of the remote side of the connection or null if
-     *         not connected
-     */
-    protected SocketAddress testableRemoteSocketAddress() {
-        return cnxn.sendThread.getClientCnxnSocket().getRemoteSocketAddress();
-    }
-
-    /**
-     * Returns the local address to which the socket is bound.
-     * THIS METHOD IS EXPECTED TO BE USED FOR TESTING ONLY!!!
-     *
-     * @since 3.3.0
-     *
-     * @return ip address of the remote side of the connection or null if
-     *         not connected
-     */
-    protected SocketAddress testableLocalSocketAddress() {
-        return cnxn.sendThread.getClientCnxnSocket().getLocalSocketAddress();
-    }
-
-    private static ClientCnxnSocket getClientCnxnSocket() throws IOException {
-        String clientCnxnSocketName = System
-                .getProperty(ZOOKEEPER_CLIENT_CNXN_SOCKET);
-        if (clientCnxnSocketName == null) {
-            clientCnxnSocketName = ClientCnxnSocketNIO.class.getName();
-        }
-        try {
-            return (ClientCnxnSocket) Class.forName(clientCnxnSocketName)
-                    .newInstance();
-        } catch (Exception e) {
-            IOException ioe = new IOException("Couldn't instantiate "
-                    + clientCnxnSocketName);
-            ioe.initCause(e);
-            throw ioe;
-        }
-    }
 }
